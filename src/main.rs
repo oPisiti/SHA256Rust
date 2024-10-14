@@ -28,14 +28,53 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
 
     // print_binary(&msg_block);
 
+    // --- Constants ---
+    // Initialize hash values (h)
+    let mut h0: u32 = 0x6a09e667;
+    let mut h1: u32 = 0xbb67ae85;
+    let mut h2: u32 = 0x3c6ef372;
+    let mut h3: u32 = 0xa54ff53a;
+    let mut h4: u32 = 0x510e527f;
+    let mut h5: u32 = 0x9b05688c;
+    let mut h6: u32 = 0x1f83d9ab;
+    let mut h7: u32 = 0x5be0cd19;
+
+    // Initialize Round Constants (k)
+    let k: [u32; 64] = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+    
+    // --- Loop variables
+    let mut a: u32;
+    let mut b: u32;
+    let mut c: u32;
+    let mut d: u32;
+    let mut e: u32;
+    let mut f: u32;
+    let mut g: u32;
+    let mut h: u32;
+
+    let mut temp1: u32;
+    let mut temp2: u32;
+    let mut sum0: u32;
+    let mut sum1: u32;
+    let mut choice: u32;
+    let mut maj: u32;
+
     // Create 32-bit words chunks for every 512 bits
-    // TODO: Optimize
-    let mut w = vec![0u32; 64];
-    for chunk in 0..(msg_len/512 + 1) as usize{
+    for chunk in 0..(msg_block.len()/64) as usize{
+        // TODO: Optimize
+        // --- Generate w
+        let mut w = vec![0u32; 64];
+
         // Move msg data into words
         for msg_index in 0..64{
             w[msg_index/4] |= (msg_block[chunk*64 + msg_index] as u32) << (3 - msg_index%4) * 8;
-            // println!("{}", w[msg_index/4]);
         }
         
         // Rotations
@@ -47,78 +86,50 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
             w[w_index] = w[w_index - 16].wrapping_add(sigma_0).wrapping_add(w[w_index - 7]).wrapping_add(sigma_1);
             
         }
-    }
-    // print_words_binary(&w);
 
-    // --- Compression --- 
-    // Initialize hash values (h)
-    let h0: u32 = 0x6a09e667;
-    let h1: u32 = 0xbb67ae85;
-    let h2: u32 = 0x3c6ef372;
-    let h3: u32 = 0xa54ff53a;
-    let h4: u32 = 0x510e527f;
-    let h5: u32 = 0x9b05688c;
-    let h6: u32 = 0x1f83d9ab;
-    let h7: u32 = 0x5be0cd19;
-
-    // Initialize Round Constants (k)
-    let k: [u32; 64] = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
-        0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
-        0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
-        0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
-        0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-        0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
-        0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
-        0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
-
-    // Define a - h
-    let mut a = h0;
-    let mut b = h1;    
-    let mut c = h2;    
-    let mut d = h3;    
-    let mut e = h4;    
-    let mut f = h5;    
-    let mut g = h6;    
-    let mut h = h7;
-
-    let mut temp1: u32;
-    let mut temp2: u32;
-    let mut sum0: u32;
-    let mut sum1: u32;
-    let mut choice: u32;
-    let mut maj: u32;
-    for i in 0..64{
-        sum0 = (a.rotate_right(2)) ^ (a.rotate_right(13)) ^ (a.rotate_right(22));
-        sum1 = (e.rotate_right(6)) ^ (e.rotate_right(11)) ^ (e.rotate_right(25));
-
-        choice = (e & f) ^ ((!e) & g);
-        maj = (a & b) ^ (a & c) ^ (b & c);
-
-        temp1 = h.wrapping_add(sum1).wrapping_add(choice).wrapping_add(k[i]).wrapping_add(w[i]);
-        temp2 = sum0.wrapping_add(maj);
+        // --- Compression --- 
+        // Define a - h
+        a = h0;
+        b = h1;    
+        c = h2;    
+        d = h3;    
+        e = h4;    
+        f = h5;    
+        g = h6;    
+        h = h7;   
         
-        h = g;
-        g = f;
-        f = e;
-        e = d.wrapping_add(temp1);
-        d = c;
-        c = b;
-        b = a;
-        a = temp1.wrapping_add(temp2);
+        for i in 0..64{
+            sum0 = (a.rotate_right(2)) ^ (a.rotate_right(13)) ^ (a.rotate_right(22));
+            sum1 = (e.rotate_right(6)) ^ (e.rotate_right(11)) ^ (e.rotate_right(25));
+
+            choice = (e & f) ^ ((!e) & g);
+            maj = (a & b) ^ (a & c) ^ (b & c);
+
+            temp1 = h.wrapping_add(sum1).wrapping_add(choice).wrapping_add(k[i]).wrapping_add(w[i]);
+            temp2 = sum0.wrapping_add(maj);
+            
+            h = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(temp1);
+            d = c;
+            c = b;
+            b = a;
+            a = temp1.wrapping_add(temp2);
+        }
+
+        // Modify final values
+        h0 = h0.wrapping_add(a);
+        h1 = h1.wrapping_add(b);
+        h2 = h2.wrapping_add(c);
+        h3 = h3.wrapping_add(d);
+        h4 = h4.wrapping_add(e);
+        h5 = h5.wrapping_add(f);
+        h6 = h6.wrapping_add(g);
+        h7 = h7.wrapping_add(h);
     }
 
-    // Modify final values
-    a = a.wrapping_add(h0);
-    b = b.wrapping_add(h1);
-    c = c.wrapping_add(h2);
-    d = d.wrapping_add(h3);
-    e = e.wrapping_add(h4);
-    f = f.wrapping_add(h5);
-    g = g.wrapping_add(h6);
-    h = h.wrapping_add(h7);
-
-    Ok(format!("{:x}{:x}{:x}{:x}{:x}{:x}{:x}{:x}", a, b, c, d, e, f, g, h))
-    // Ok(format!("{:x}", a))
+    Ok(format!("{:x}{:x}{:x}{:x}{:x}{:x}{:x}{:x}", h0, h1, h2, h3, h4, h5, h6, h7))
 }
 
 #[allow(dead_code)]
@@ -152,7 +163,6 @@ fn print_words_binary(block: &Vec<u32>) -> (){
 
 
 fn main() {
-    // let _ = sha256("abcdefghi");
-    let ans = sha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").unwrap_or_default();
+    let ans = sha256("These violent delights have violent ends").unwrap_or_default();
     println!("Hash: {ans}");
 }
