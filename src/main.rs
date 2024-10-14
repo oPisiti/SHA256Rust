@@ -7,6 +7,9 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
                                 io::Error::new(io::ErrorKind::InvalidInput, "Msg is too big! How did you manage that??")
                             )?;
 
+    // Config
+    let MAX_NAME_LEN = 30;
+
     let mut msg_block: Vec<u8> = vec![0; ((msg.as_bytes().len() + 8)/64 + 1) * 64];
     
     // Copy the message to the msg block
@@ -67,14 +70,13 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
     let mut maj: u32;
 
     // Create 32-bit words chunks for every 512 bits
-    for chunk in 0..(msg_block.len()/64) as usize{
-        // TODO: Optimize
+    for chunk_index in (0..msg_block.len()/64).step_by(64).into_iter(){
         // --- Generate w
         let mut w = vec![0u32; 64];
 
         // Move msg data into words
         for msg_index in 0..64{
-            w[msg_index/4] |= (msg_block[chunk*64 + msg_index] as u32) << (3 - msg_index%4) * 8;
+            w[msg_index/4] |= (msg_block[chunk_index + msg_index] as u32) << (3 - msg_index%4) * 8;
         }
         
         // Rotations
@@ -129,7 +131,8 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
         h7 = h7.wrapping_add(h);
     }
 
-    Ok(format!("{:x}{:x}{:x}{:x}{:x}{:x}{:x}{:x}", h0, h1, h2, h3, h4, h5, h6, h7))
+    let name = if msg.len() <= MAX_NAME_LEN {msg.to_string()} else {format!("{}...", &msg[0..MAX_NAME_LEN-3])};
+    Ok(format!("{:x}{:x}{:x}{:x}{:x}{:x}{:x}{:x}  {name}", h0, h1, h2, h3, h4, h5, h6, h7))
 }
 
 #[allow(dead_code)]
@@ -164,5 +167,5 @@ fn print_words_binary(block: &Vec<u32>) -> (){
 
 fn main() {
     let ans = sha256("These violent delights have violent ends").unwrap_or_default();
-    println!("Hash: {ans}");
+    println!("{ans}  ");
 }
