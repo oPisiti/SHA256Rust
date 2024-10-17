@@ -1,35 +1,54 @@
-use std::io;
+use std::fs::File;
+use std::io::{self, Read};
 
-fn sha256(msg: &str) -> Result<String, io::Error>{
-    let msg_len: u64 = msg.as_bytes().len()
-                            .try_into()
-                            .map_err(|_|
-                                io::Error::new(io::ErrorKind::InvalidInput, "Msg is too big! How did you manage that??")
-                            )?;
-
+fn sha256(msg: &str, is_file: bool) -> Result<String, io::Error>{
     // Config
-    let MAX_NAME_LEN = 30;
+    let max_name_len = 30;
 
-    let mut msg_block: Vec<u8> = vec![0; ((msg.as_bytes().len() + 8)/64 + 1) * 64];
-    
-    // Copy the message to the msg block
-    let mut index: usize = 0;
-    for b in msg.as_bytes(){
-        msg_block[index] = *b;
-        index += 1;
+    // Determine the data to be hashed
+    let mut msg_block;
+    let msg_len;
+    if is_file{
+        let mut file = File::open(&msg)?;
+
+        // Create a buffer to hold the byte data
+        msg_block = Vec::new();
+
+        // Read the file into the buffer
+        file.read_to_end(&mut msg_block)?;
+        msg_len = msg_block.len();
+
+        // Adjust size
+        for _ in msg_len..((msg_len + 8)/64 + 1) * 64{
+            msg_block.push(0u8);
+        }
+    }
+    else{
+        msg_len = msg.as_bytes().len()
+                                .try_into()
+                                .map_err(|_|
+                                    io::Error::new(io::ErrorKind::InvalidInput, "Msg is too big! How did you manage that??")
+                                )?;
+
+        msg_block = vec![0; ((msg.as_bytes().len() + 8)/64 + 1) * 64];
+
+        // Copy the message to the msg block
+        let mut index: usize = 0;
+        for b in msg.as_bytes(){
+            msg_block[index] = *b;
+            index += 1;
+        }
     }
 
     // Append a single 1 
-    msg_block[index] = 0x80;
-
+    msg_block[msg_len] = 0x80;
+    
     // Append the original message length to the end of the message block
     let mut tmp_msg_len = msg_len * 8;
     for len_index in (msg_block.len()-8..=msg_block.len()-1).rev(){
         msg_block[len_index] = (tmp_msg_len & 0xff) as u8;
         tmp_msg_len = tmp_msg_len >> 8;
     }
-
-    // print_binary(&msg_block);
 
     // --- Constants ---
     // Initialize hash values (h)
@@ -52,7 +71,7 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
         0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
         0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
     
-    // --- Loop variables
+    // --- Loop variables ---
     let mut a: u32;
     let mut b: u32;
     let mut c: u32;
@@ -70,7 +89,7 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
     let mut maj: u32;
 
     // Create 32-bit words chunks for every 512 bits
-    for chunk_index in (0..msg_block.len()/64).step_by(64).into_iter(){
+    for chunk_index in (0..msg_block.len()).step_by(64).into_iter(){
         // --- Generate w
         let mut w = vec![0u32; 64];
 
@@ -131,7 +150,7 @@ fn sha256(msg: &str) -> Result<String, io::Error>{
         h7 = h7.wrapping_add(h);
     }
 
-    let name = if msg.len() <= MAX_NAME_LEN {msg.to_string()} else {format!("{}...", &msg[0..MAX_NAME_LEN-3])};
+    let name = if msg.len() <= max_name_len {msg.to_string()} else {format!("{}...", &msg[0..max_name_len-3])};
     Ok(format!("{:x}{:x}{:x}{:x}{:x}{:x}{:x}{:x}  {name}", h0, h1, h2, h3, h4, h5, h6, h7))
 }
 
@@ -166,6 +185,7 @@ fn print_words_binary(block: &Vec<u32>) -> (){
 
 
 fn main() {
-    let ans = sha256("These violent delights have violent ends").unwrap_or_default();
+    // let ans = sha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaThese violent delights have violent ends", false).unwrap_or_default();
+    let ans = sha256("test", true).unwrap_or_default();
     println!("{ans}  ");
 }
