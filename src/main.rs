@@ -151,7 +151,7 @@ fn sha256(msg: &str, is_file: bool) -> Result<String, io::Error>{
     }
 
     let name = if msg.len() <= max_name_len {msg.to_string()} else {format!("{}...", &msg[0..max_name_len-3])};
-    Ok(format!("{:x}{:x}{:x}{:x}{:x}{:x}{:x}{:x}  {name}", h0, h1, h2, h3, h4, h5, h6, h7))
+    Ok(format!("{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}{:08x}  {name}", h0, h1, h2, h3, h4, h5, h6, h7))
 }
 
 #[allow(dead_code)]
