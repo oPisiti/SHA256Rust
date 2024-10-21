@@ -1,3 +1,4 @@
+use clap::Parser;
 use std::fs::File;
 use std::io::{self, Read};
 
@@ -183,9 +184,29 @@ fn print_words_binary(block: &Vec<u32>) -> (){
     }
 }
 
+/// Search for a pattern in a file and display the lines that contain it.
+#[derive(Parser, Debug)]
+struct Cli {
+    /// Specifies string literals
+    #[arg(num_args = 0..)]
+    names: Vec<String>,
+
+    /// Specifies names of files
+    #[arg(short, long, num_args = 0..)]
+    files: Vec<String>,
+}
+
 
 fn main() {
-    // let ans = sha256("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaThese violent delights have violent ends", false).unwrap_or_default();
-    let ans = sha256("test", true).unwrap_or_default();
-    println!("{ans}  ");
+    let args = Cli::parse();
+
+    // String literals
+    for name in &args.names{ 
+        println!("{}", sha256(name, false).unwrap_or_default());
+    }
+
+    // Files
+    for name in &args.files{ 
+        println!("{}", sha256(name, true).unwrap_or_default());
+    }
 }
