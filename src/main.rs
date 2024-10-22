@@ -210,3 +210,26 @@ fn main() {
         println!("{}", sha256(name, true).unwrap_or_default());
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn string_literal() {
+        let result = sha256("abcdefghijklmnopqrstuvxz", false).unwrap();
+        assert_eq!(result, "ddcfffa483832eeda1b7d1348686ac699d6b4df0dbf8c9dfbaa4c5e79f00fef3  abcdefghijklmnopqrstuvxz");
+    }
+
+    #[test]
+    fn file_test() {
+        let result = sha256("test", true).unwrap();
+        assert_eq!(result, "1d952db2e2a8fc241475846259b425ae56c5c710a35b9c059c54257db7f09597  test");
+    }
+
+    #[test]
+    fn file_shakespear() {
+        let result = sha256("shakespear", true).unwrap();
+        assert_eq!(result, "31a47019761603627b7f37b9fbc00e706499e763c5c670cf1c0a8aa554b5be7e  shakespear");
+    }
+}
